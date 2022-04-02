@@ -1,17 +1,12 @@
 package main
 
 import (
-	"encoding/json"
-	"log"
+	"log"      //Para imprimir en consola
 	"net/http" // El paquete HTTP
-	"server/prueba/api"
 
-	"github.com/gorilla/mux"
+	"github.com/gorilla/mux"          // El paquete de rutas
+	"github.com/joaco-basile/CFP/api" // El paquete de mi API
 )
-
-func calendario(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode("{\"message\": \"hello word\"}")
-}
 
 func main() {
 	router := mux.NewRouter()
@@ -20,12 +15,11 @@ func main() {
 	//Registrando las rutas
 	a.RegisterRoutes(router)
 
-	router.HandleFunc("/", calendario).Methods(http.MethodGet)
-
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: router,
 	}
+
 	log.Println("Server en el puerto", srv.Addr)
 	srv.ListenAndServe()
 }
