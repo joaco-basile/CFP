@@ -1,20 +1,18 @@
 # CFP
-Calendario flexible programable
+Calendario Flexible Programable
 
-## Integrantes
--Joaco Basile
--Francisco Robledo
--Santino Enriz
--Luciano Fernández
--Santiago Capitani
+## Integrantes 
+1. Joaco Basile
+2. Francisco Robledo
+3. Santino Enriz
+4. Luciano Fernández
+5. Santiago Capitani
 
-### Tecnologías 
+## Tecnologías 
 
-#### Backend
+### Backend:
 -React Native
-
-#### Frontend 
+### Frontend:
 -Go
-
-#### Base de Datos
--Mysql
+### Base de Datos:
+-Mysql 
