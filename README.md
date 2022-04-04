@@ -13,8 +13,8 @@ Calendario flexible programable
 #### Backend
 -React Native
 
-##### Frontend 
+#### Frontend 
 -Go
 
-###### Base de Datos
+#### Base de Datos
 -Mysql
