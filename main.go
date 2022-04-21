@@ -1,25 +1,21 @@
 package main
 
 import (
-	"log"      //Para imprimir en consola
-	"net/http" // El paquete HTTP
+	//Para imprimir en consola
+	// El paquete HTTP
 
-	"github.com/gorilla/mux"          // El paquete de rutas
+	// El paquete de rutas
 	"github.com/joaco-basile/CFP/api" // El paquete de mi API
+	"github.com/labstack/echo"
 )
 
 func main() {
-	router := mux.NewRouter()
+	e := echo.New()
 	//Creando un objeto API
 	a := &api.API{}
 	//Registrando las rutas
-	a.RegisterRoutes(router)
+	a.RegisterRoutes(e)
 
-	srv := &http.Server{
-		Addr:    ":8080",
-		Handler: router,
-	}
+	e.Logger.Fatal(e.Start(":8080"))
 
-	log.Println("Server en el puerto", srv.Addr)
-	srv.ListenAndServe()
 }

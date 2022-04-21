@@ -1,15 +1,11 @@
 package api
 
 import (
-	"net/http"
-
-	"github.com/gorilla/mux"
+	"github.com/labstack/echo"
 )
 
-func (a *API) RegisterRoutes(r *mux.Router) {
-	r.HandleFunc("/calendario", a.postCalendario).Methods(http.MethodPost)
-	r.HandleFunc("/calendario", a.getCalendario).Methods(http.MethodGet)
-	r.HandleFunc("/calendario", a.patchCalendario).Methods(http.MethodPatch)
-	//r.HandleFunc("/calendario", a.deleteCalendario).Methods(http.MethodDelete)
-
+func (a *API) RegisterRoutes(e *echo.Echo) {
+	e.POST("/calendario", a.postCalendario)
+	e.GET("/calendario", a.getCalendario)
+	e.PATCH("/calendario", a.patchCalendario)
 }

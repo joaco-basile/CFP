@@ -2,18 +2,18 @@ package api
 
 import (
 	"database/sql"
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/labstack/echo"
 )
 
 type API struct{}
 
 type Calendario struct {
-	Id            int    `json:"id"`
+	ID            int    `json:"idCaledario"`
 	Nombre        string `json:"nombre"`
 	Propietario   string `json:"propietario"`
 	Datos         string `json:"datos"`
@@ -31,18 +31,20 @@ func openDb() (db *sql.DB) {
 	return db
 }
 
-func (a *API) postCalendario(w http.ResponseWriter, r *http.Request) {
+func (a *API) postCalendario(ec echo.Context) error {
 
 	c := Calendario{
-		Nombre:        "joaco",
-		Propietario:   "joaco",
-		Datos:         "nada",
-		Colaboradores: "",
+		Nombre:        ec.QueryParams().Get("nombre"),
+		Propietario:   ec.QueryParams().Get("propietario"),
+		Datos:         ec.QueryParams().Get("datos"),
+		Colaboradores: ec.QueryParams().Get("colaboradores"),
 	}
 
 	db := openDb()
+	defer db.Close()
 
 	sentenciaPreparada, err1 := db.Prepare("INSERT INTO calendario (nombre, propietario, datos, colaboradores) VALUES(?, ?, ?, ?)")
+
 	if err1 != nil {
 		log.Fatal(err1)
 	}
@@ -53,9 +55,11 @@ func (a *API) postCalendario(w http.ResponseWriter, r *http.Request) {
 	if err2 != nil {
 		panic("fallo la execucion de la centencia")
 	}
+
+	return ec.JSON(http.StatusAccepted, map[string]string{"mensaje": "El usuario se registro con exito"})
 }
 
-func (a *API) getCalendario(w http.ResponseWriter, r *http.Request) {
+func (a *API) getCalendario(ec echo.Context) error {
 
 	var c Calendario
 	var cs Calendarios
@@ -63,49 +67,50 @@ func (a *API) getCalendario(w http.ResponseWriter, r *http.Request) {
 	db := openDb()
 	defer db.Close()
 
-	rows, err := db.Query("SELECT * FROM calendario")
+	rows, err := db.Query("SELECT nombre, propietario, datos, colaboradores FROM calendario")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&c.Id, &c.Nombre, &c.Propietario, &c.Datos, &c.Colaboradores)
+		err := rows.Scan(&c.Nombre, &c.Propietario, &c.Datos, &c.Colaboradores)
 		if err != nil {
 			log.Fatal(err)
 		}
 		cs = append(cs, c)
 	}
 
-	json.NewEncoder(w).Encode(cs)
+	return ec.JSON(http.StatusOK, cs)
 }
 
-// for que arme un array de strings
-func (a *API) patchCalendario(w http.ResponseWriter, r *http.Request) {
+func (a *API) patchCalendario(ec echo.Context) error {
 
-	datosPeticion := r.URL.Query()["id"]
+	c := Calendario{
+		Nombre:        ec.QueryParams().Get("nombre"),
+		Propietario:   ec.QueryParams().Get("propietario"),
+		Datos:         ec.QueryParams().Get("datos"),
+		Colaboradores: ec.QueryParams().Get("colaboradores"),
+	}
 
-	fmt.Println(datosPeticion)
-	/*
-		c := calendario{
-			id:          datosPeticion["id"][1],
-			nombre:      datosPeticion.nombre,
-			propietario: datosPeticion.propietario,
-			datos:       datosPeticion.datos,
-		}
+	var err error
+	c.ID, err = strconv.Atoi(ec.QueryParams().Get("id"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		db := openDb()
-		defer db.Close()
+	db := openDb()
+	defer db.Close()
 
-		sentenciaPreparada, err1 := db.Prepare("UPDATE calendario SET nombre = ?, propietario = ?, datos = ?, colaboradores = ? WHERE idCalendario = ?")
-		if err1 != nil {
-			log.Fatal(err1)
-		}
-		defer sentenciaPreparada.Close()
+	sentenciaPreparada, err1 := db.Prepare("UPDATE calendario SET nombre = ?, propietario = ?, datos = ?, colaboradores = ? WHERE idCalendario = ?")
+	if err1 != nil {
+		log.Fatal(err1)
+	}
+	defer sentenciaPreparada.Close()
 
-		_, err2 := sentenciaPreparada.Exec(c.nombre, c.propietario, c.datos, c.colaboradores)
+	_, err2 := sentenciaPreparada.Exec(c.Nombre, c.Propietario, c.Datos, c.Colaboradores, c.ID)
 
-		if err2 != nil {
-			panic("fallo la execucion de la centencia")
-		}
-	*/
+	if err2 != nil {
+		log.Fatal("fallo la execucion de la centencia")
+	}
+	return ec.JSON(http.StatusAccepted, map[string]string{"mensaje": "se cambiaron los datos"})
 }
