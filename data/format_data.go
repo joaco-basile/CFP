@@ -6,9 +6,7 @@ import (
 	"os"
 )
 
-type Data struct{}
-
-func (d *Data) CsvToArray(file string) [][]string {
+func CsvToArray(file string) [][]string {
 	f, err := os.Open(file)
 	if err != nil {
 		fmt.Println(err)
@@ -30,7 +28,7 @@ func (d *Data) CsvToArray(file string) [][]string {
 	return records
 }
 
-func (d *Data) ArrayToCsv(array [][]string) string {
+func ArrayToCsv(array [][]string) string {
 	f, err := os.Create("data/archivo.csv")
 	if err != nil {
 		fmt.Println(err)

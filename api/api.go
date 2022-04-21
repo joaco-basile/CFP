@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,12 +12,15 @@ import (
 
 type API struct{}
 
-type calendario struct {
-	id                                        int
-	nombre, propietario, datos, colaboradores string
+type Calendario struct {
+	Id            int    `json:"id"`
+	Nombre        string `json:"nombre"`
+	Propietario   string `json:"propietario"`
+	Datos         string `json:"datos"`
+	Colaboradores string `json:"colaboradores"`
 }
 
-type calendarios []calendario
+type Calendarios []Calendario
 
 func openDb() (db *sql.DB) {
 	db, err := sql.Open("mysql", "root:etec@tcp(localhost:3306)/calendarios")
@@ -28,11 +32,12 @@ func openDb() (db *sql.DB) {
 }
 
 func (a *API) postCalendario(w http.ResponseWriter, r *http.Request) {
-	c := calendario{
-		id:          1,
-		nombre:      "disponibilidad de camiones",
-		propietario: "fran",
-		datos:       "'dias,camion1,camion2,camion3\nlunes,horario1,horario2,horario3'",
+
+	c := Calendario{
+		Nombre:        "joaco",
+		Propietario:   "joaco",
+		Datos:         "nada",
+		Colaboradores: "",
 	}
 
 	db := openDb()
@@ -43,7 +48,7 @@ func (a *API) postCalendario(w http.ResponseWriter, r *http.Request) {
 	}
 	defer sentenciaPreparada.Close()
 
-	_, err2 := sentenciaPreparada.Exec(c.nombre, c.propietario, c.datos, c.colaboradores)
+	_, err2 := sentenciaPreparada.Exec(c.Nombre, c.Propietario, c.Datos, c.Colaboradores)
 
 	if err2 != nil {
 		panic("fallo la execucion de la centencia")
@@ -51,25 +56,30 @@ func (a *API) postCalendario(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) getCalendario(w http.ResponseWriter, r *http.Request) {
-	var calendarios calendarios
-	var c calendario
+
+	var c Calendario
+	var cs Calendarios
+
 	db := openDb()
+	defer db.Close()
+
 	rows, err := db.Query("SELECT * FROM calendario")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&c.id, &c.nombre, &c.propietario, &c.datos, &c.colaboradores)
+		err := rows.Scan(&c.Id, &c.Nombre, &c.Propietario, &c.Datos, &c.Colaboradores)
 		if err != nil {
 			log.Fatal(err)
 		}
-		calendarios = append(calendarios, c)
+		cs = append(cs, c)
 	}
-	fmt.Println(calendarios)
 
+	json.NewEncoder(w).Encode(cs)
 }
 
+// for que arme un array de strings
 func (a *API) patchCalendario(w http.ResponseWriter, r *http.Request) {
 
 	datosPeticion := r.URL.Query()["id"]
