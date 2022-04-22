@@ -67,13 +67,13 @@ func (a *API) getCalendario(ec echo.Context) error {
 	db := openDb()
 	defer db.Close()
 
-	rows, err := db.Query("SELECT nombre, propietario, datos, colaboradores FROM calendario")
+	rows, err := db.Query("SELECT idCalendario, nombre, propietario, datos, colaboradores FROM calendario")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&c.Nombre, &c.Propietario, &c.Datos, &c.Colaboradores)
+		err := rows.Scan(&c.ID, &c.Nombre, &c.Propietario, &c.Datos, &c.Colaboradores)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -107,10 +107,43 @@ func (a *API) patchCalendario(ec echo.Context) error {
 	}
 	defer sentenciaPreparada.Close()
 
-	_, err2 := sentenciaPreparada.Exec(c.Nombre, c.Propietario, c.Datos, c.Colaboradores, c.ID)
+	result, err2 := sentenciaPreparada.Exec(c.Nombre, c.Propietario, c.Datos, c.Colaboradores, c.ID)
+
+	filasAfectadas, _ := result.RowsAffected()
+
+	if filasAfectadas == 0 {
+		return ec.JSON(http.StatusBadRequest, "no se encontro el valor que se quiere modificar")
+	}
 
 	if err2 != nil {
 		log.Fatal("fallo la execucion de la centencia")
 	}
 	return ec.JSON(http.StatusAccepted, map[string]string{"mensaje": "se cambiaron los datos"})
+}
+
+func (a *API) deleteCalendario(ec echo.Context) error {
+	nombre := ec.QueryParams().Get("nombre")
+
+	db := openDb()
+	defer db.Close()
+
+	sentenciaPreparada, err := db.Prepare("DELETE FROM calendario WHERE nombre = ?")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer sentenciaPreparada.Close()
+
+	result, err := sentenciaPreparada.Exec(nombre)
+
+	filasAfectadas, _ := result.RowsAffected()
+
+	if filasAfectadas == 0 {
+		return ec.JSON(http.StatusBadRequest, "no se encontro el valor que se quiere eliminar")
+	}
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return ec.JSON(http.StatusAccepted, map[string]string{"mensaje": "se elimino el o los items de la tabla calendario"})
 }
