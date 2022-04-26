@@ -11,7 +11,6 @@ import (
 )
 
 type API struct{}
-
 type Calendario struct {
 	ID            int    `json:"idCaledario"`
 	Nombre        string `json:"nombre"`
@@ -19,7 +18,6 @@ type Calendario struct {
 	Datos         string `json:"datos"`
 	Colaboradores string `json:"colaboradores"`
 }
-
 type Calendarios []Calendario
 
 func openDb() (db *sql.DB) {
@@ -29,6 +27,63 @@ func openDb() (db *sql.DB) {
 	}
 
 	return db
+}
+
+func (a *API) getCalendario(ec echo.Context) error {
+
+	var c Calendario
+	var cs Calendarios
+
+	db := openDb()
+	defer db.Close()
+
+	id := ec.QueryParams().Get("id")
+
+	idInt, err := strconv.Atoi(id)
+
+	if err != nil {
+		panic(err)
+	}
+
+	rows, err := db.Query("SELECT * FROM calendario WHERE idCalendario = ?", idInt)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err := rows.Scan(&c.ID, &c.Nombre, &c.Propietario, &c.Datos, &c.Colaboradores)
+		if err != nil {
+			log.Fatal(err)
+		}
+		cs = append(cs, c)
+	}
+
+	return ec.JSON(http.StatusOK, cs)
+}
+func (a *API) getCalendarios(ec echo.Context) error {
+
+	var c Calendario
+	var cs Calendarios
+
+	db := openDb()
+	defer db.Close()
+
+	rows, err := db.Query("SELECT * FROM calendario")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err := rows.Scan(&c.ID, &c.Nombre, &c.Propietario, &c.Datos, &c.Colaboradores)
+		if err != nil {
+			log.Fatal(err)
+		}
+		cs = append(cs, c)
+	}
+
+	return ec.JSON(http.StatusOK, cs)
 }
 
 func (a *API) postCalendario(ec echo.Context) error {
@@ -58,31 +113,6 @@ func (a *API) postCalendario(ec echo.Context) error {
 
 	return ec.JSON(http.StatusAccepted, map[string]string{"mensaje": "El usuario se registro con exito"})
 }
-
-func (a *API) getCalendario(ec echo.Context) error {
-
-	var c Calendario
-	var cs Calendarios
-
-	db := openDb()
-	defer db.Close()
-
-	rows, err := db.Query("SELECT idCalendario, nombre, propietario, datos, colaboradores FROM calendario")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		err := rows.Scan(&c.ID, &c.Nombre, &c.Propietario, &c.Datos, &c.Colaboradores)
-		if err != nil {
-			log.Fatal(err)
-		}
-		cs = append(cs, c)
-	}
-
-	return ec.JSON(http.StatusOK, cs)
-}
-
 func (a *API) patchCalendario(ec echo.Context) error {
 
 	c := Calendario{
@@ -120,7 +150,6 @@ func (a *API) patchCalendario(ec echo.Context) error {
 	}
 	return ec.JSON(http.StatusAccepted, map[string]string{"mensaje": "se cambiaron los datos"})
 }
-
 func (a *API) deleteCalendario(ec echo.Context) error {
 	nombre := ec.QueryParams().Get("nombre")
 
