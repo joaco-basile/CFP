@@ -10,16 +10,20 @@ import (
 	"github.com/labstack/echo"
 )
 
-type API struct{}
-type Calendario struct {
-	ID            int    `json:"idCaledario"`
-	Nombre        string `json:"nombre"`
-	Propietario   string `json:"propietario"`
-	Datos         string `json:"datos"`
-	Colaboradores string `json:"colaboradores"`
-}
-type Calendarios []Calendario
+//Inicializando los typos
+type (
+	API        struct{}
+	Calendario struct {
+		ID            int    `json:"idCaledario"`
+		Nombre        string `json:"nombre"`
+		Propietario   string `json:"propietario"`
+		Datos         string `json:"datos"`
+		Colaboradores string `json:"colaboradores"`
+	}
+	Calendarios []Calendario
+)
 
+// Crea una conexion con la DB y la retorna
 func openDb() (db *sql.DB) {
 	db, err := sql.Open("mysql", "root:etec@tcp(localhost:3306)/calendarios")
 	if err != nil {
@@ -29,6 +33,7 @@ func openDb() (db *sql.DB) {
 	return db
 }
 
+//(id)-->(calendario) Devuelve un calenario
 func (a *API) getCalendario(ec echo.Context) error {
 
 	var c Calendario
@@ -37,7 +42,7 @@ func (a *API) getCalendario(ec echo.Context) error {
 	db := openDb()
 	defer db.Close()
 
-	id := ec.QueryParams().Get("id")
+	id := ec.QueryParam("id")
 
 	idInt, err := strconv.Atoi(id)
 
@@ -61,6 +66,8 @@ func (a *API) getCalendario(ec echo.Context) error {
 
 	return ec.JSON(http.StatusOK, cs)
 }
+
+//(User)-->([]calendarios) Devuleve todos los calendarios de un usuario
 func (a *API) getCalendarios(ec echo.Context) error {
 
 	var c Calendario
@@ -69,7 +76,9 @@ func (a *API) getCalendarios(ec echo.Context) error {
 	db := openDb()
 	defer db.Close()
 
-	rows, err := db.Query("SELECT * FROM calendario")
+	user := ec.QueryParam("propietario")
+
+	rows, err := db.Query("SELECT * FROM calendario WHERE propietario = ?", user)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -86,44 +95,47 @@ func (a *API) getCalendarios(ec echo.Context) error {
 	return ec.JSON(http.StatusOK, cs)
 }
 
+//(calendario)-->(ok) Crea un nuevo calendario
 func (a *API) postCalendario(ec echo.Context) error {
 
 	c := Calendario{
-		Nombre:        ec.QueryParams().Get("nombre"),
-		Propietario:   ec.QueryParams().Get("propietario"),
-		Datos:         ec.QueryParams().Get("datos"),
-		Colaboradores: ec.QueryParams().Get("colaboradores"),
+		Nombre:        ec.QueryParam("nombre"),
+		Propietario:   ec.QueryParam("propietario"),
+		Datos:         ec.QueryParam("datos"),
+		Colaboradores: ec.QueryParam("colaboradores"),
 	}
 
 	db := openDb()
 	defer db.Close()
 
-	sentenciaPreparada, err1 := db.Prepare("INSERT INTO calendario (nombre, propietario, datos, colaboradores) VALUES(?, ?, ?, ?)")
+	sentenciaPreparada, err := db.Prepare("INSERT INTO calendario (nombre, propietario, datos, colaboradores) VALUES(?, ?, ?, ?)")
 
-	if err1 != nil {
-		log.Fatal(err1)
+	if err != nil {
+		log.Fatal(err)
 	}
 	defer sentenciaPreparada.Close()
 
-	_, err2 := sentenciaPreparada.Exec(c.Nombre, c.Propietario, c.Datos, c.Colaboradores)
+	_, err = sentenciaPreparada.Exec(c.Nombre, c.Propietario, c.Datos, c.Colaboradores)
 
-	if err2 != nil {
-		panic("fallo la execucion de la centencia")
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	return ec.JSON(http.StatusAccepted, map[string]string{"mensaje": "El usuario se registro con exito"})
+	return ec.JSON(http.StatusAccepted, "El usuario se registro con exito")
 }
+
+//(calendario, id)-->(ok) Cambia los datos de un calendario creado
 func (a *API) patchCalendario(ec echo.Context) error {
 
 	c := Calendario{
-		Nombre:        ec.QueryParams().Get("nombre"),
-		Propietario:   ec.QueryParams().Get("propietario"),
-		Datos:         ec.QueryParams().Get("datos"),
-		Colaboradores: ec.QueryParams().Get("colaboradores"),
+		Nombre:        ec.QueryParam("nombre"),
+		Propietario:   ec.QueryParam("propietario"),
+		Datos:         ec.QueryParam("datos"),
+		Colaboradores: ec.QueryParam("colaboradores"),
 	}
 
 	var err error
-	c.ID, err = strconv.Atoi(ec.QueryParams().Get("id"))
+	c.ID, err = strconv.Atoi(ec.QueryParam("id"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -131,13 +143,13 @@ func (a *API) patchCalendario(ec echo.Context) error {
 	db := openDb()
 	defer db.Close()
 
-	sentenciaPreparada, err1 := db.Prepare("UPDATE calendario SET nombre = ?, propietario = ?, datos = ?, colaboradores = ? WHERE idCalendario = ?")
-	if err1 != nil {
-		log.Fatal(err1)
+	sentenciaPreparada, err := db.Prepare("UPDATE calendario SET nombre = ?, propietario = ?, datos = ?, colaboradores = ? WHERE idCalendario = ?")
+	if err != nil {
+		log.Fatal(err)
 	}
 	defer sentenciaPreparada.Close()
 
-	result, err2 := sentenciaPreparada.Exec(c.Nombre, c.Propietario, c.Datos, c.Colaboradores, c.ID)
+	result, err := sentenciaPreparada.Exec(c.Nombre, c.Propietario, c.Datos, c.Colaboradores, c.ID)
 
 	filasAfectadas, _ := result.RowsAffected()
 
@@ -145,13 +157,15 @@ func (a *API) patchCalendario(ec echo.Context) error {
 		return ec.JSON(http.StatusBadRequest, "no se encontro el valor que se quiere modificar")
 	}
 
-	if err2 != nil {
+	if err != nil {
 		log.Fatal("fallo la execucion de la centencia")
 	}
-	return ec.JSON(http.StatusAccepted, map[string]string{"mensaje": "se cambiaron los datos"})
+	return ec.JSON(http.StatusAccepted, "se cambiaron los datos del calendario")
 }
+
+//(id)-->(ok) Elimina un calendario
 func (a *API) deleteCalendario(ec echo.Context) error {
-	nombre := ec.QueryParams().Get("nombre")
+	nombre := ec.QueryParam("nombre")
 
 	db := openDb()
 	defer db.Close()
@@ -174,5 +188,5 @@ func (a *API) deleteCalendario(ec echo.Context) error {
 		log.Fatal(err)
 	}
 
-	return ec.JSON(http.StatusAccepted, map[string]string{"mensaje": "se elimino el o los items de la tabla calendario"})
+	return ec.JSON(http.StatusAccepted, "Se elimino el o los items de la tabla calendario")
 }
