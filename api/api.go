@@ -33,6 +33,31 @@ func openDb() (db *sql.DB) {
 	return db
 }
 
+// Busca y devuleve el id del ultimo calendario en toda la tabla
+func lastIdCalendario(db *sql.DB) int {
+	res, err := db.Query("SELECT idCalendario  FROM calendario ORDER BY idCalendario  DESC LIMIT 1")
+	if err != nil {
+		panic(err)
+	}
+	defer res.Close()
+
+	var Id int
+
+	for res.Next() {
+		err = res.Scan(&Id)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return Id
+}
+
+// Busca en la tabla y elimina los datos iguales
+/*func deleteRepeted(db *sql.DB) error {
+
+
+}*/
+
 //(id)-->(calendario) Devuelve un calenario
 func (a *API) getCalendario(ec echo.Context) error {
 
@@ -108,14 +133,13 @@ func (a *API) postCalendario(ec echo.Context) error {
 	db := openDb()
 	defer db.Close()
 
-	sentenciaPreparada, err := db.Prepare("INSERT INTO calendario (nombre, propietario, datos, colaboradores) VALUES(?, ?, ?, ?)")
-
+	sentenciaPreparada, err := db.Prepare("INSERT INTO calendario (idCalendario, nombre, propietario, datos, colaboradores) VALUES(?, ?, ?, ?, ?)")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer sentenciaPreparada.Close()
 
-	_, err = sentenciaPreparada.Exec(c.Nombre, c.Propietario, c.Datos, c.Colaboradores)
+	_, err = sentenciaPreparada.Exec(lastIdCalendario(db)+1, c.Nombre, c.Propietario, c.Datos, c.Colaboradores)
 
 	if err != nil {
 		log.Fatal(err)
@@ -165,25 +189,28 @@ func (a *API) patchCalendario(ec echo.Context) error {
 
 //(id)-->(ok) Elimina un calendario
 func (a *API) deleteCalendario(ec echo.Context) error {
-	nombre := ec.QueryParam("nombre")
+	id := ec.QueryParam("id")
 
 	db := openDb()
 	defer db.Close()
 
-	sentenciaPreparada, err := db.Prepare("DELETE FROM calendario WHERE nombre = ?")
+	sentenciaPreparada, err := db.Prepare("DELETE FROM calendario WHERE idCalendario = ?")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer sentenciaPreparada.Close()
 
-	result, err := sentenciaPreparada.Exec(nombre)
+	result, err := sentenciaPreparada.Exec(id)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	filasAfectadas, _ := result.RowsAffected()
-
 	if filasAfectadas == 0 {
 		return ec.JSON(http.StatusBadRequest, "no se encontro el valor que se quiere eliminar")
 	}
 
+	_, err = db.Query("UPDATE calendario SET idCalendario = ? WHERE idCalendario = ?", id, lastIdCalendario(db))
 	if err != nil {
 		log.Fatal(err)
 	}
