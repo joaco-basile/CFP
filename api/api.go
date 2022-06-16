@@ -10,7 +10,7 @@ import (
 	"github.com/labstack/echo"
 )
 
-//Inicializando los typos
+//Inicializando los tipos
 type (
 	API        struct{}
 	Calendario struct {
@@ -23,17 +23,16 @@ type (
 	Calendarios []Calendario
 )
 
-// Crea una conexion con la DB y la retorna
+//Crea una conexion con la DB y la retorna
 func openDb() (db *sql.DB) {
 	db, err := sql.Open("mysql", "root:etec@tcp(localhost:3306)/calendarios")
 	if err != nil {
 		panic("fallo la conexion con la base")
 	}
-
 	return db
 }
 
-// Busca y devuleve el id del ultimo calendario en toda la tabla
+//Busca y devuleve el id del ultimo calendario en toda la tabla
 func lastIdCalendario(db *sql.DB) int {
 	res, err := db.Query("SELECT idCalendario  FROM calendario ORDER BY idCalendario  DESC LIMIT 1")
 	if err != nil {
@@ -52,11 +51,15 @@ func lastIdCalendario(db *sql.DB) int {
 	return Id
 }
 
-// Busca en la tabla y elimina los datos iguales
-/*func deleteRepeted(db *sql.DB) error {
+//	RUTAS PARA USUARIOS
 
+func (a *API) postUser(ec echo.Context) error {
+	//	db := openDb()
 
-}*/
+	return ec.JSON(http.StatusAccepted, "Se guardo el nuevo usuario")
+}
+
+//	RUTAS PARA CALENDARIOS
 
 //(id)-->(calendario) Devuelve un calenario
 func (a *API) getCalendario(ec echo.Context) error {
@@ -92,7 +95,7 @@ func (a *API) getCalendario(ec echo.Context) error {
 	return ec.JSON(http.StatusOK, cs)
 }
 
-//(User)-->([]calendarios) Devuleve todos los calendarios de un usuario
+//(user)-->([]calendarios) Devuleve todos los calendarios de un usuario
 func (a *API) getCalendarios(ec echo.Context) error {
 
 	var c Calendario
